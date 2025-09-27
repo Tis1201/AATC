@@ -2,12 +2,7 @@ import { Time } from "lightweight-charts";
 import { YahooQuoteData, Timeframe } from "./types";
 import { apiCache } from "./cache";
 
-/**
- * Fetch stock data from Yahoo Finance via API route
- * @param symbol Stock symbol (default: "FUESSV30.HM")
- * @param timeframe Timeframe for data (1D, 1W, 1M)
- * @returns Promise of candlestick data with volume
- */
+
 export async function fetchYahooSeries(
   symbol = "FUESSV30.HM",
   timeframe: Timeframe = "1D"
@@ -51,7 +46,7 @@ export async function fetchYahooSeries(
 
     if (!res.ok) {
       console.error(`API request failed: ${res.status} ${res.statusText}`);
-      // Try to get the error response
+  
       let errorMessage = `Failed to fetch data: ${res.statusText}`;
       try {
         const errorData = await res.json();
@@ -59,7 +54,7 @@ export async function fetchYahooSeries(
           errorMessage = errorData.error;
         }
       } catch (e) {
-        // Ignore JSON parse errors
+
       }
       throw new Error(errorMessage);
     }

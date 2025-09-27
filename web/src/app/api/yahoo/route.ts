@@ -101,9 +101,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * Handle OPTIONS requests for CORS
- */
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
@@ -115,9 +113,7 @@ export async function OPTIONS() {
   });
 }
 
-/**
- * Generate mock data for development/fallback
- */
+
 function generateMockData(symbol = "MOCK") {
   const now = Math.floor(Date.now() / 1000);
   const dayInSeconds = 24 * 60 * 60;

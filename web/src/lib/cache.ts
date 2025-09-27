@@ -1,6 +1,4 @@
-/**
- * Simple in-memory cache for API responses
- */
+
 class ApiCache {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly TTL = 30000; // 30 seconds

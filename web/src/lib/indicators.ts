@@ -1,14 +1,4 @@
-/**
- * Technical Indicators Library
- * Contains all technical analysis calculation functions
- */
 
-/**
- * Calculate Simple Moving Average
- * @param values Array of price values
- * @param period Period for SMA calculation
- * @returns Array of SMA values
- */
 export function calculateSMA(values: number[], period: number): number[] {
   const result: number[] = [];
   for (let i = 0; i < values.length; i++) {
@@ -22,12 +12,7 @@ export function calculateSMA(values: number[], period: number): number[] {
   return result;
 }
 
-/**
- * Calculate Exponential Moving Average
- * @param values Array of price values
- * @param period Period for EMA calculation
- * @returns Array of EMA values
- */
+
 export function calculateEMA(values: number[], period: number): number[] {
   if (!values.length) return [];
   const result: number[] = [];
@@ -42,12 +27,7 @@ export function calculateEMA(values: number[], period: number): number[] {
   return result;
 }
 
-/**
- * Calculate Relative Strength Index
- * @param values Array of price values
- * @param period Period for RSI calculation (default: 14)
- * @returns Array of RSI values
- */
+
 export function calculateRSI(values: number[], period = 14): number[] {
   const len = values.length;
   const result = Array(len).fill(NaN);
@@ -78,14 +58,7 @@ export function calculateRSI(values: number[], period = 14): number[] {
   return result;
 }
 
-/**
- * Calculate MACD (Moving Average Convergence Divergence)
- * @param values Array of price values
- * @param shortPeriod Short period EMA (default: 12)
- * @param longPeriod Long period EMA (default: 26)
- * @param signalPeriod Signal line EMA period (default: 9)
- * @returns Object containing MACD line, signal line, and histogram
- */
+
 export function calculateMACD(
   values: number[],
   shortPeriod = 12,
@@ -114,13 +87,7 @@ export function calculateMACD(
   return { macdLine, signalLine, histogram };
 }
 
-/**
- * Calculate Bollinger Bands
- * @param values Array of price values
- * @param period Period for calculation (default: 20)
- * @param multiplier Standard deviation multiplier (default: 2)
- * @returns Object containing upper, lower, and middle bands
- */
+
 export function calculateBollingerBands(
   values: number[],
   period = 20,
