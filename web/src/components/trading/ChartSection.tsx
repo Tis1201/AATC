@@ -1,8 +1,10 @@
 "use client";
-import { useRef, MutableRefObject } from "react";
+import { useRef, MutableRefObject, useEffect } from "react";
 import { Timeframe } from "@/lib/types";
 import QuickTradingButtons from "./QuickTradingButtons";
 import TimeframeControls from "./TimeframeControls";
+import { useDrawing } from "@/contexts/DrawingContext";
+import { drawingService } from "@/lib/drawing-service";
 
 interface ChartSectionProps {
   containerRef: MutableRefObject<HTMLDivElement | null>;
@@ -54,6 +56,24 @@ export default function ChartSection({
   dayRange,
   fiftyTwoWeekRange,
 }: ChartSectionProps) {
+  const { activeTool } = useDrawing();
+  
+  // Initialize drawing service when container is available
+  useEffect(() => {
+    if (containerRef.current) {
+      drawingService.initialize(containerRef.current);
+    }
+    
+    return () => {
+      drawingService.destroy();
+    };
+  }, [containerRef]);
+  
+  // Update active tool in drawing service
+  useEffect(() => {
+    drawingService.setActiveTool(activeTool);
+  }, [activeTool]);
+  
   return (
     <div
       className={`rounded overflow-hidden relative transition-colors duration-300 ${
@@ -77,11 +97,10 @@ export default function ChartSection({
         {/* Main Chart Container - Optimized for smooth resizing */}
         <div
           ref={containerRef}
-          className={`flex-1 w-full ${
+          className={`flex-1 w-full relative ${
             isDarkMode ? "bg-[#131722]" : "bg-white"
           }`}
           style={{
-            position: "relative",
             overflow: "hidden",
             minHeight: "200px",
             // Prevent layout thrashing during resize

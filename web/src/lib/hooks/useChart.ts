@@ -38,6 +38,7 @@ interface UseChartProps {
   showRSI?: boolean;
   showMACD?: boolean;
   chartType?: "candlestick" | "line" | "area";
+  isPrivateMode?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ export function useChart({
   showRSI = false,
   showMACD = false,
   chartType = "candlestick",
+  isPrivateMode = false,
 }: UseChartProps) {
   // Refs to prevent unnecessary re-initialization
   const isInitializedRef = useRef<string>(""); // Store symbol+timeframe combo
@@ -550,10 +552,12 @@ export function useChart({
         const data = await fetchYahooSeries(symbol, timeframe);
         initFromData(data);
 
-        // Start real-time simulation after data loads
-        setTimeout(() => {
-          startReplay();
-        }, 1000);
+        // Start real-time simulation after data loads (only if not in private mode)
+        if (!isPrivateMode) {
+          setTimeout(() => {
+            startReplay();
+          }, 1000);
+        }
       } catch (err) {
         console.error("Fetch Yahoo failed:", err);
       }
@@ -771,7 +775,7 @@ export function useChart({
 
     // Return cleanup for useEffect
     return cleanup;
-  }, [symbol, timeframe, isDarkMode, showRSI, showMACD, chartType]); // Include chartType in dependencies
+  }, [symbol, timeframe, isDarkMode, showRSI, showMACD, chartType, isPrivateMode]); // Include chartType and isPrivateMode in dependencies
 
   return {
     charts: chartsRef.current,

@@ -5,6 +5,9 @@ import { useChart } from "@/lib/hooks/useChart";
 import { useTradingPosition } from "@/lib/hooks/useTradingPosition";
 import { useScreenshot } from "@/lib/hooks/useScreenshot";
 import { useTheme } from "@/contexts/ThemeContext";
+import { DrawingProvider, useDrawing } from "@/contexts/DrawingContext";
+import { useLayoutManager } from "@/lib/hooks/useLayoutManager";
+import { useChartResize } from "@/lib/hooks/useChartResize";
 import TopNavigation from "@/components/trading/TopNavigation";
 import StockInfoBar from "@/components/trading/StockInfoBar";
 import LeftSidebar from "@/components/trading/LeftSidebar";
@@ -23,10 +26,18 @@ interface TradingPageProps {
  * Complete TradingView-style Trading Platform
  * Implements comprehensive trading interface with all required components
  */
-export default function TradingPlatform({
-  symbol = "VIC.VN",
-}: TradingPageProps) {
+export default function TradingPlatformWrapper(props: TradingPageProps) {
+  return (
+    <DrawingProvider>
+      <TradingPlatform {...props} />
+    </DrawingProvider>
+  );
+}
+
+function TradingPlatform({ symbol = "VIC.VN" }: TradingPageProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  
+  // Core state
   const [timeframe, setTimeframe] = useState<Timeframe>("1D");
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
   const [ohlcData, setOhlcData] = useState<{
@@ -38,55 +49,22 @@ export default function TradingPlatform({
     changePercent: number;
   } | null>(null);
   const [currentVolume, setCurrentVolume] = useState<number>(0);
-
-  // Chart type state
-  const [chartType, setChartType] = useState<"candlestick" | "line" | "area">(
-    "candlestick"
-  );
-
-  // Indicator state management
+  const [chartType, setChartType] = useState<"candlestick" | "line" | "area">("candlestick");
   const [showRSI, setShowRSI] = useState(false);
   const [showMACD, setShowMACD] = useState(false);
+  const [isPrivateMode, setIsPrivateMode] = useState(false);
 
-  // Vertical split state for chart vs account manager
-  const [chartAccountSplit, setChartAccountSplit] = useState(70); // 70% chart, 30% account
-  const [isDragging, setIsDragging] = useState(false);
-  const [isAccountCollapsed, setIsAccountCollapsed] = useState(false);
-  const [isAccountMaximized, setIsAccountMaximized] = useState(false);
-  const [previousSplit, setPreviousSplit] = useState(70); // Store previous split for restore
-  const leftColumnRef = useRef<HTMLDivElement>(null);
-
-  // Horizontal split state for left section vs right section
-  const [horizontalSplit, setHorizontalSplit] = useState(75); // 75% left, 25% right
-  const [isHorizontalDragging, setIsHorizontalDragging] = useState(false);
-  const [previousHorizontalSplit, setPreviousHorizontalSplit] = useState(75);
-  const mainContainerRef = useRef<HTMLDivElement>(null);
-
-  // Right section vertical split state (watchlist | stock info | news)
-  const [rightWatchlistSplit, setRightWatchlistSplit] = useState(40); // 40% watchlist
-  const [rightStockInfoSplit, setRightStockInfoSplit] = useState(30); // 30% stock info, 30% news
-  const [isRightWatchlistDragging, setIsRightWatchlistDragging] =
-    useState(false);
-  const [isRightStockInfoDragging, setIsRightStockInfoDragging] =
-    useState(false);
-  const rightSectionRef = useRef<HTMLDivElement>(null);
-
-  // Animation frame ref for smoother updates
-  const animationFrameRef = useRef<number | null>(null);
-  const lastResizeTimeRef = useRef<number>(0);
-
-  // Theme context
+  // Custom hooks
   const { theme, toggleTheme } = useTheme();
+  const { tradingPosition, handleBuy, handleSell, updateLastPrice } = useTradingPosition();
+  const { downloadScreenshot } = useScreenshot();
+  const { activeTool, setActiveTool } = useDrawing();
+  const { triggerChartResize } = useChartResize(containerRef);
+  const layoutManager = useLayoutManager();
+
   const isDarkMode = theme === "dark";
 
-  // Trading position management
-  const { tradingPosition, handleBuy, handleSell, updateLastPrice } =
-    useTradingPosition();
-
-  // Screenshot functionality
-  const { downloadScreenshot } = useScreenshot();
-
-  // Chart management with technical indicators and chart type
+  // Chart management
   useChart({
     containerRef,
     symbol: selectedSymbol,
@@ -98,79 +76,268 @@ export default function TradingPlatform({
     showRSI,
     showMACD,
     chartType,
+    isPrivateMode,
   });
 
-  // Optimized chart resize function with throttling
-  const triggerChartResize = useCallback(() => {
-    const now = Date.now();
-
-    // Cancel previous animation frame if pending
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    // Use requestAnimationFrame for smooth 60fps updates
-    animationFrameRef.current = requestAnimationFrame(() => {
-      // Only trigger resize if enough time has passed (throttle to ~60fps)
-      if (now - lastResizeTimeRef.current >= 16) {
-        const resizeEvent = new CustomEvent("chartResize");
-        window.dispatchEvent(resizeEvent);
-        lastResizeTimeRef.current = now;
-      }
-    });
-  }, []);
-
-  // Add resize observer to handle chart resizing when grid height changes
+  // Effect to handle split changes
   useEffect(() => {
-    const chartContainer = containerRef.current;
-    if (!chartContainer) return;
+    const isAnyDragging = 
+      layoutManager.chartAccountLayout.isDragging ||
+      layoutManager.horizontalLayout.isDragging ||
+      layoutManager.watchlistLayout.isDragging ||
+      layoutManager.stockInfoLayout.isDragging;
 
-    const resizeObserver = new ResizeObserver(() => {
-      triggerChartResize();
-    });
-
-    resizeObserver.observe(chartContainer);
-
-    return () => {
-      resizeObserver.disconnect();
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [triggerChartResize]);
-
-  // Effect to handle split changes - immediate resize during drag
-  useEffect(() => {
-    if (
-      isDragging ||
-      isHorizontalDragging ||
-      isRightWatchlistDragging ||
-      isRightStockInfoDragging
-    ) {
-      // During drag, resize immediately for real-time feedback
+    if (isAnyDragging) {
       triggerChartResize();
     } else {
-      // After drag ends, do one final resize with small delay
       const timeout = setTimeout(() => {
         triggerChartResize();
       }, 50);
       return () => clearTimeout(timeout);
     }
   }, [
-    chartAccountSplit,
-    horizontalSplit,
-    rightWatchlistSplit,
-    rightStockInfoSplit,
-    isDragging,
-    isHorizontalDragging,
-    isRightWatchlistDragging,
-    isRightStockInfoDragging,
+    layoutManager.chartAccountLayout.split,
+    layoutManager.horizontalLayout.split,
+    layoutManager.watchlistLayout.split,
+    layoutManager.stockInfoLayout.split,
+    layoutManager.chartAccountLayout.isDragging,
+    layoutManager.horizontalLayout.isDragging,
+    layoutManager.watchlistLayout.isDragging,
+    layoutManager.stockInfoLayout.isDragging,
     triggerChartResize,
   ]);
 
-  const handleTimeframeChange = (newTimeframe: Timeframe) => {
+  // Event handlers
+  const handleTimeframeChange = useCallback((newTimeframe: Timeframe) => {
     setTimeframe(newTimeframe);
-  };
+  }, []);
+
+  const handleSymbolChange = useCallback((newSymbol: string) => {
+    setSelectedSymbol(newSymbol);
+  }, []);
+
+  const handleBuyClick = useCallback(() => {
+    handleBuy();
+  }, [handleBuy]);
+
+  const handleSellClick = useCallback(() => {
+    handleSell();
+  }, [handleSell]);
+
+  const handleScreenshot = useCallback(async () => {
+    try {
+      const chartElement = containerRef.current;
+      if (chartElement) {
+        await downloadScreenshot(
+          chartElement,
+          `${selectedSymbol}_${timeframe}_${new Date().toISOString().split("T")[0]}.png`,
+          {
+            onSuccess: () => console.log("Screenshot downloaded successfully!"),
+            onError: (error) => console.error("Screenshot failed:", error),
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Screenshot error:", error);
+    }
+  }, [downloadScreenshot, selectedSymbol, timeframe]);
+
+  const handleToolSelect = useCallback((toolId: string) => {
+    console.log("Selected tool:", toolId);
+    setActiveTool(toolId as any);
+  }, [setActiveTool]);
+
+  const handleGroupToggle = useCallback((groupId: string) => {
+    console.log("Group toggled:", groupId);
+  }, []);
+
+  const handleMenuOpen = useCallback(() => {
+    console.log("Menu opened");
+  }, []);
+  
+  const handleSettingsOpen = useCallback(() => {
+    console.log("Settings opened");
+  }, []);
+
+  return (
+    <div
+      className={`h-screen flex flex-col transition-colors duration-200 ${
+        isDarkMode ? "bg-[#131722]" : "bg-white"
+      }`}
+    >
+      {/* Top Navigation Bar */}
+      <TopNavigation
+        symbol={selectedSymbol}
+        timeframe={timeframe}
+        onTimeframeChange={handleTimeframeChange}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={toggleTheme}
+        onSymbolChange={handleSymbolChange}
+        chartType={chartType}
+        onChartTypeChange={setChartType}
+        showRSI={showRSI}
+        showMACD={showMACD}
+        onToggleRSI={() => setShowRSI(!showRSI)}
+        onToggleMACD={() => setShowMACD(!showMACD)}
+        onScreenshot={handleScreenshot}
+        isPrivateMode={isPrivateMode}
+        onTogglePrivateMode={() => setIsPrivateMode(!isPrivateMode)}
+      />
+
+      {/* Stock Info Bar */}
+      <StockInfoBar
+        symbol={selectedSymbol}
+        ohlcData={ohlcData}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex relative overflow-hidden">
+        {/* Left Sidebar */}
+        <LeftSidebar 
+          isDarkMode={isDarkMode}
+          onToolSelect={handleToolSelect}
+          onGroupToggle={handleGroupToggle}
+          onMenuOpen={handleMenuOpen}
+          onSettingsOpen={handleSettingsOpen}
+        />
+
+        {/* Main Grid Area */}
+        <div ref={layoutManager.mainContainerRef} className="flex-1 flex gap-2 p-2">
+          {/* Left Section - Chart and Account Manager */}
+          <div
+            ref={layoutManager.leftColumnRef}
+            className="grid gap-2 transition-none"
+            style={{
+              width: `${layoutManager.horizontalLayout.split}%`,
+              gridTemplateRows: `${layoutManager.chartAccountLayout.split}fr 12px ${
+                100 - layoutManager.chartAccountLayout.split
+              }fr`,
+            }}
+          >
+            {/* Chart Panel */}
+            <ChartSection
+              containerRef={containerRef}
+              ohlcData={ohlcData}
+              selectedSymbol={selectedSymbol}
+              isDarkMode={isDarkMode}
+              timeframe={timeframe}
+              onTimeframeChange={handleTimeframeChange}
+              onBuyClick={handleBuyClick}
+              onSellClick={handleSellClick}
+              currentPrice={ohlcData?.close || tradingPosition.lastPrice || 245.3}
+              change={ohlcData?.change || 0}
+              changePercent={ohlcData?.changePercent || 0}
+              showRSI={showRSI}
+              showMACD={showMACD}
+              onToggleRSI={() => setShowRSI(!showRSI)}
+              onToggleMACD={() => setShowMACD(!showMACD)}
+              isDragging={layoutManager.chartAccountLayout.isDragging}
+              currentVolume={currentVolume}
+              dayRange={{
+                low: ohlcData?.low || 240.21,
+                high: ohlcData?.high || 246.3,
+              }}
+              fiftyTwoWeekRange={{
+                low: selectedSymbol.includes(".VN") ? 180500 : 180.5,
+                high: selectedSymbol.includes(".VN") ? 260800 : 260.8,
+              }}
+            />
+
+            {/* Vertical Divider */}
+            <ResizableDivider
+              isVertical={true}
+              isDragging={layoutManager.chartAccountLayout.isDragging}
+              onMouseDown={(e) => layoutManager.chartAccountLayout.handleMouseDown(e, true)}
+              title={
+                layoutManager.isAccountCollapsed
+                  ? "Account Manager is collapsed"
+                  : "Drag up/down to resize chart and account manager heights"
+              }
+              splitPercentage={layoutManager.chartAccountLayout.split}
+              isDisabled={layoutManager.isAccountCollapsed}
+              isDarkMode={isDarkMode}
+            />
+
+            {/* Account Manager Section */}
+            <AccountManagerSection
+              tradingPosition={tradingPosition}
+              isDarkMode={isDarkMode}
+              isDragging={layoutManager.chartAccountLayout.isDragging}
+              isAccountCollapsed={layoutManager.isAccountCollapsed}
+              isAccountMaximized={layoutManager.isAccountMaximized}
+              chartAccountSplit={layoutManager.chartAccountLayout.split}
+              onCollapsePanel={layoutManager.handleCollapsePanel}
+              onOpenPanel={layoutManager.handleOpenPanel}
+              onMaximizePanel={layoutManager.handleMaximizePanel}
+              onRestorePanel={layoutManager.handleRestorePanel}
+            />
+          </div>
+
+          {/* Horizontal Divider */}
+          <ResizableDivider
+            isVertical={false}
+            isDragging={layoutManager.horizontalLayout.isDragging}
+            onMouseDown={(e) => layoutManager.horizontalLayout.handleMouseDown(e, false)}
+            onDoubleClick={layoutManager.horizontalLayout.resetSplit}
+            title="Drag left/right to resize sections | Double-click to reset"
+            splitPercentage={layoutManager.horizontalLayout.split}
+            isDarkMode={isDarkMode}
+          />
+
+          {/* Right Section */}
+          <div
+            ref={layoutManager.rightSectionRef}
+            className="grid gap-2 transition-none"
+            style={{
+              width: `${100 - layoutManager.horizontalLayout.split}%`,
+              gridTemplateRows: `${layoutManager.watchlistLayout.split}fr 12px ${layoutManager.stockInfoLayout.split}fr 12px ${
+                100 - layoutManager.watchlistLayout.split - layoutManager.stockInfoLayout.split
+              }fr`,
+            }}
+          >
+            {/* Watchlist Section */}
+            <WatchlistSection
+              selectedSymbol={selectedSymbol}
+              onSymbolSelect={handleSymbolChange}
+              isDarkMode={isDarkMode}
+            />
+
+            {/* Watchlist to Stock Info Divider */}
+            <ResizableDivider
+              isVertical={true}
+              isDragging={layoutManager.watchlistLayout.isDragging}
+              onMouseDown={(e) => layoutManager.watchlistLayout.handleMouseDown(e, true)}
+              title="Drag up/down to resize watchlist and stock info sections"
+              splitPercentage={layoutManager.watchlistLayout.split}
+              isDarkMode={isDarkMode}
+            />
+
+            {/* Stock Info Section */}
+            <StockInfoSection
+              selectedSymbol={selectedSymbol}
+              isDarkMode={isDarkMode}
+              currentVolume={currentVolume}
+            />
+
+            {/* Stock Info to News Divider */}
+            <ResizableDivider
+              isVertical={true}
+              isDragging={layoutManager.stockInfoLayout.isDragging}
+              onMouseDown={(e) => layoutManager.stockInfoLayout.handleMouseDown(e, true)}
+              title="Drag up/down to resize stock info and news sections"
+              splitPercentage={layoutManager.stockInfoLayout.split + layoutManager.watchlistLayout.split}
+              isDarkMode={isDarkMode}
+            />
+
+            {/* News Section */}
+            <NewsSection isDarkMode={isDarkMode} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
   const handleSymbolChange = (newSymbol: string) => {
     setSelectedSymbol(newSymbol);
@@ -551,7 +718,7 @@ export default function TradingPlatform({
 
           // Smooth constraints with easing near boundaries
           const minStockInfo = 15;
-          const maxStockInfo = Math.min(60, 90 - rightWatchlistSplit);
+          const maxStockInfo = Math.min(60, 100 - rightWatchlistSplit);
 
           if (newSplit < minStockInfo) {
             newSplit = minStockInfo + (newSplit - minStockInfo) * 0.1; // Ease into boundary
@@ -618,6 +785,8 @@ export default function TradingPlatform({
         onToggleRSI={() => setShowRSI(!showRSI)}
         onToggleMACD={() => setShowMACD(!showMACD)}
         onScreenshot={handleScreenshot}
+        isPrivateMode={isPrivateMode}
+        onTogglePrivateMode={() => setIsPrivateMode(!isPrivateMode)}
       />
 
       {/* Stock Info Bar */}
@@ -630,7 +799,13 @@ export default function TradingPlatform({
       {/* Main Content Area - Fixed Layout with Left Sidebar + 2-Column Grid */}
       <div className="flex-1 flex relative overflow-hidden">
         {/* Left Sidebar - Always Visible */}
-        <LeftSidebar isDarkMode={isDarkMode} />
+        <LeftSidebar 
+          isDarkMode={isDarkMode}
+          onToolSelect={handleToolSelect}
+          onGroupToggle={handleGroupToggle}
+          onMenuOpen={handleMenuOpen}
+          onSettingsOpen={handleSettingsOpen}
+        />
 
         {/* Main Grid Area - Horizontal Resizable Layout */}
         <div ref={mainContainerRef} className="flex-1 flex gap-2 p-2">

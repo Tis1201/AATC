@@ -20,6 +20,8 @@ import {
   Moon,
   Bell,
   Zap,
+  Lock,
+  Unlock,
 } from "lucide-react";
 
 import { Timeframe } from "@/lib/types";
@@ -46,6 +48,8 @@ interface TopNavigationProps {
   onToggleMACD?: () => void;
   onScreenshot?: () => void;
   onSaveChart?: () => void;
+  isPrivateMode?: boolean;
+  onTogglePrivateMode?: () => void;
 }
 
 export default function TopNavigation({
@@ -65,6 +69,8 @@ export default function TopNavigation({
   onToggleMACD,
   onScreenshot,
   onSaveChart,
+  isPrivateMode = false,
+  onTogglePrivateMode,
 }: TopNavigationProps) {
   const [showTimeframeDropdown, setShowTimeframeDropdown] = useState(false);
   const [showIndicators, setShowIndicators] = useState(false);
@@ -651,6 +657,46 @@ export default function TopNavigation({
             title="Settings"
           >
             <Settings style={{ width: "16px", height: "16px" }} />
+          </button>
+
+          {/* Private Mode Toggle */}
+          <button
+            onClick={onTogglePrivateMode}
+            style={{
+              ...buttonStyle(),
+              backgroundColor: isPrivateMode ? currentTheme.active : currentTheme.cardBg,
+              border: `1px solid ${currentTheme.border}`,
+              padding: "8px",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = currentTheme.hover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isPrivateMode ? currentTheme.active : currentTheme.cardBg;
+            }}
+            title={
+              isPrivateMode
+                ? "Switch to public mode (enable real-time simulation)"
+                : "Switch to private mode (disable real-time simulation)"
+            }
+          >
+            {isPrivateMode ? (
+              <Lock
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  color: "white",
+                }}
+              />
+            ) : (
+              <Unlock
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  color: currentTheme.text,
+                }}
+              />
+            )}
           </button>
 
           {/* Theme Toggle */}

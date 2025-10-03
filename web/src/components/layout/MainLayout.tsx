@@ -3,6 +3,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { DrawingProvider } from '@/contexts/DrawingContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -115,15 +116,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   );
 
   return (
-    <LayoutContainer>
-      <Header>
-        {header || defaultHeader}
-      </Header>
-      {sidebar && <Sidebar>{sidebar || defaultSidebar}</Sidebar>}
-      <Main>{children}</Main>
-      <Footer>
-        {footer || defaultFooter}
-      </Footer>
-    </LayoutContainer>
+    <DrawingProvider>
+      <LayoutContainer>
+        <Header>
+          {header || defaultHeader}
+        </Header>
+        {sidebar && <Sidebar>{sidebar || defaultSidebar}</Sidebar>}
+        <Main>{children}</Main>
+        <Footer>
+          {footer || defaultFooter}
+        </Footer>
+      </LayoutContainer>
+    </DrawingProvider>
   );
 };
