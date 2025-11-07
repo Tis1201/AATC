@@ -89,7 +89,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const defaultHeader = (
     <>
       <Logo>My App</Logo>
-      <ThemeToggle />
+      {/* ThemeToggle removed as per requirement to only use dark mode */}
     </>
   );
 

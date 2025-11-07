@@ -5,7 +5,7 @@ interface UseResizableLayoutOptions {
   initialSplit: number;
   minSplit: number;
   maxSplit: number;
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   onSplitChange?: (split: number) => void;
 }
 

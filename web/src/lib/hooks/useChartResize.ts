@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useCallback, useEffect } from "react";
 
-export function useChartResize(containerRef: React.RefObject<HTMLDivElement>) {
+export function useChartResize(containerRef: React.RefObject<HTMLDivElement | null>) {
   const animationFrameRef = useRef<number | null>(null);
   const lastResizeTimeRef = useRef<number>(0);
 

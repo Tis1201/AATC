@@ -699,45 +699,7 @@ export default function TopNavigation({
             )}
           </button>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={handleThemeToggle}
-            style={{
-              ...buttonStyle(),
-              backgroundColor: currentTheme.cardBg,
-              border: `1px solid ${currentTheme.border}`,
-              padding: "8px",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = currentTheme.hover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = currentTheme.cardBg;
-            }}
-            title={
-              currentThemeMode === "dark"
-                ? "Switch to light mode"
-                : "Switch to dark mode"
-            }
-          >
-            {currentThemeMode === "dark" ? (
-              <Sun
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  color: currentTheme.text,
-                }}
-              />
-            ) : (
-              <Moon
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  color: currentTheme.text,
-                }}
-              />
-            )}
-          </button>
+          {/* Theme Toggle - Removed as per requirement to only use dark mode */}
         </div>
 
         {/* Documentation Button */}

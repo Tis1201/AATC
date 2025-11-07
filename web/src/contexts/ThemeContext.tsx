@@ -4,7 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { lightTheme, darkTheme } from "@/themes/theme";
 import { ThemeType } from "@/types/theme";
 
-type Theme = "light" | "dark";
+// Changed type to only allow "dark"
+type Theme = "dark";
 
 interface ThemeContextType {
   theme: Theme;
@@ -17,8 +18,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [theme, setTheme] = useState<Theme>("light");
-  const themeConfig = theme === "light" ? lightTheme : darkTheme;
+  // Changed initial state to always be "dark"
+  const [theme, setTheme] = useState<Theme>("dark");
+  const themeConfig = darkTheme; // Always use dark theme
 
   // Hàm inject CSS variables vào root
   const injectCSSVariables = (theme: ThemeType) => {
@@ -47,23 +49,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    const systemPrefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-
-    const initialTheme = savedTheme || (systemPrefersDark ? "dark" : "light");
-    setTheme(initialTheme);
+    // Always set theme to dark and save to localStorage
+    setTheme("dark");
+    localStorage.setItem("theme", "dark");
+    document.documentElement.classList.add("dark");
+    injectCSSVariables(themeConfig);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("theme", theme);
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    injectCSSVariables(themeConfig);
-  }, [theme, themeConfig]);
-
+  // Removed toggleTheme functionality since we only want dark mode
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    // Do nothing - theme is always dark
   };
 
   return (

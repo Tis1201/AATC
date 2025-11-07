@@ -10,8 +10,8 @@ import { useChart, useScreenshot } from "@/lib/hooks";
 import { Timeframe } from "@/lib/types";
 
 export default function TradingPage() {
-  const { theme, toggleTheme } = useTheme();
-  const isDarkMode = theme === "dark";
+  const { theme } = useTheme(); // Removed toggleTheme since we only use dark mode
+  const isDarkMode = true; // Always use dark mode
 
   // Chart state
   const [selectedSymbol, setSelectedSymbol] = useState("AAPL");
@@ -113,9 +113,7 @@ export default function TradingPage() {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? "bg-[#131722] text-white" : "bg-[#f8fafc] text-gray-900"
-      }`}
+      className={`min-h-screen transition-colors duration-300 bg-[#131722] text-white`}
     >
       {/* Top Navigation with all new features */}
       <TopNavigation
@@ -123,7 +121,6 @@ export default function TradingPage() {
         timeframe={timeframe}
         onTimeframeChange={(tf) => setTimeframe(tf)}
         isDarkMode={isDarkMode}
-        onToggleDarkMode={toggleTheme}
         onSymbolChange={setSelectedSymbol}
         chartType={chartType}
         onChartTypeChange={setChartType}
@@ -171,11 +168,7 @@ export default function TradingPage() {
 
       {/* Status Bar */}
       <div
-        className={`border-t px-4 py-2 text-sm transition-colors duration-300 ${
-          isDarkMode
-            ? "border-[#2a2e39] bg-[#1e222d]"
-            : "border-gray-200 bg-white"
-        }`}
+        className={`border-t px-4 py-2 text-sm transition-colors duration-300 border-[#2a2e39] bg-[#1e222d]`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -199,11 +192,7 @@ export default function TradingPage() {
 
       {/* Feature Showcase Panel (for demonstration) */}
       <div
-        className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg border transition-colors duration-300 ${
-          isDarkMode
-            ? "bg-[#1e222d] border-[#2a2e39]"
-            : "bg-white border-gray-200"
-        }`}
+        className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg border transition-colors duration-300 bg-[#1e222d] border-[#2a2e39]`}
       >
         <h3 className="text-sm font-semibold mb-2">
           🎉 New Features Available!
